@@ -1,5 +1,6 @@
 from decimal import Decimal
 from collections import deque
+import csv  # 新增导入csv模块
 
 # 商品列表
 products = [
@@ -183,6 +184,50 @@ def set_price_range():
             print("请输入有效的数字")
 
 
+# 新增：将解决方案导出为CSV的函数
+def write_solutions_to_csv(solutions, filename='product_solutions.csv', format_type='wide'):
+    """将所有解决方案写入CSV文件
+    
+    参数:
+        solutions: 解决方案列表，每个元素为 (quantities, total_cost)
+        filename: CSV文件名
+        format_type: 'wide'(宽格式) 或 'long'(长格式)
+    """
+    with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.writer(csvfile)
+        
+        if format_type == 'wide':
+            # 宽格式 - 每行一个解决方案
+            header = ['方案编号', '总成本']
+            for p in products:
+                header.append(p["name"])
+            writer.writerow(header)
+            
+            for i, (quantities, total_cost) in enumerate(solutions, 1):
+                row = [i, total_cost] + quantities
+                writer.writerow(row)
+                
+        else:  # long format
+            # 长格式 - 每个解决方案多行，每行一个有数量的商品
+            header = ['方案编号', '商品名称', '数量', '单价', '小计']
+            writer.writerow(header)
+            
+            for i, (quantities, total_cost) in enumerate(solutions, 1):
+                for j, qty in enumerate(quantities):
+                    if qty > 0:  # 只包含数量大于0的商品
+                        product = products[j]
+                        item_cost = qty * product["price"]
+                        row = [i, product["name"], qty, product["price"], item_cost]
+                        writer.writerow(row)
+                
+                # 添加总计行
+                writer.writerow([i, '总计', '', '', total_cost])
+                # 添加空行分隔不同的解决方案
+                writer.writerow(['', '', '', '', ''])
+        
+    print(f"\n所有解决方案已导出到 {filename}，格式：{'宽格式' if format_type == 'wide' else '长格式'}")
+
+
 def main():
     print("===== 商品组合优化查找程序 =====")
 
@@ -200,6 +245,17 @@ def main():
     # 设置总价范围
     min_total, max_total = set_price_range()
 
+    # 设置是否逐个输出
+    print("\n是否逐个输出？")
+    while True:
+        choice = input("请选择 (y/n): ")
+        if choice in ["y", "Y", ""]:
+            oneByOne = True
+            break
+        elif choice in ["n", "N"]:
+            oneByOne = False
+            break
+
     # 创建查找器并设置约束
     finder = SolutionFinder(min_total, max_total)
     finder.set_constraints_from_dict(constraints)
@@ -209,6 +265,7 @@ def main():
     finder.initialize_search()
 
     solution_count = 0
+    all_solutions = []  # 存储所有解决方案
 
     while True:
         success, quantities, total_cost = finder.find_next_solution()
@@ -217,11 +274,14 @@ def main():
             if solution_count == 0:
                 print("未找到满足条件的解决方案。")
             else:
-                print("\n已找到所有满足条件的解决方案。")
+                print(f"\n已找到所有满足条件的解决方案，共 {solution_count} 个。")
             break
 
         solution_count += 1
         print(f"\n第 {solution_count} 个优解:")
+        
+        # 存储解决方案
+        all_solutions.append((quantities, total_cost))
 
         # 显示解决方案详情
         for i, qty in enumerate(quantities):
@@ -231,11 +291,33 @@ def main():
                 print(f"- {product['name']}: {qty} 箱 x {product['price']} = {item_cost} 元")
 
         print(f"总成本: {total_cost} 元")
+        
+        if not oneByOne:
+            continue
 
         # 询问用户是否继续
         choice = input("\n是否继续查找更多解决方案？(y/n): ")
         if choice.lower() != 'y':
             break
+    
+    # 将所有解决方案导出为CSV文件
+    if solution_count > 0:
+        csv_filename = input("\n请输入CSV文件名 (默认: product_solutions.csv): ") or "product_solutions.csv"
+        
+        print("\n请选择CSV格式:")
+        print("1. 宽格式 - 每行一个解决方案，列为各商品数量 (适合筛选和排序)")
+        print("2. 长格式 - 每个解决方案占多行，每行一个有数量的商品 (适合明细查看)")
+        
+        while True:
+            format_choice = input("请选择 (1/2): ")
+            if format_choice == "1" or format_choice == "":
+                format_type = 'wide'
+                break
+            elif format_choice == "2":
+                format_type = 'long'
+                break
+        
+        write_solutions_to_csv(all_solutions, csv_filename, format_type)
 
 
 if __name__ == "__main__":
