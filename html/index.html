@@ -368,6 +368,10 @@
             border-radius: 8px;
         }
 
+        .export-btn {
+            margin-top: 20px;
+        }
+
         .search-progress {
             background: #e9ecef;
             border-radius: 10px;
@@ -468,17 +472,30 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            button {
+                padding: 10px 20px;
+                margin-right: 5px;
+            }
+
             .container {
-                margin: 10px;
-                border-radius: 10px;
+                margin: 5px;
+                border-radius: 8px;
             }
 
             .main-content {
-                padding: 20px;
+                padding: 10px;
             }
 
             .constraint-inputs {
                 grid-template-columns: 1fr;
+            }
+
+            .input-content, .range-setting, .start-stop, .export-btn, .search-status {
+                text-align: center;
             }
 
             .solution-products {
@@ -566,7 +583,7 @@
                 <div class="info" style="opacity: 1.0;">
                     <strong>说明：</strong>设置每个商品的最小和最大采购数量。系统会根据最大总价自动计算每个商品的最大可能数量。
                 </div>
-                <div>
+                <div id="rangeSetting" class="range-setting">
                     <button onclick="useDefaultConstraints()">使用默认约束</button>
                     <button onclick="resetConstraints()">重置所有约束</button>
                 </div>
@@ -584,8 +601,10 @@
                     <label for="solutionsPerPage">每页显示解决方案数量：</label>
                     <input type="number" id="solutionsPerPage" value="10" min="1" max="50">
                 </div>
-                <button id="startSearch" onclick="startSearch()">开始搜索</button>
-                <button id="stopSearch" onclick="stopSearch()" style="display: none;" disabled>停止搜索</button>
+                <div id="startStop" class="start-stop">
+                    <button id="startSearch" onclick="startSearch()">开始搜索</button>
+                    <button id="stopSearch" onclick="stopSearch()" style="display: none;" disabled>停止搜索</button>
+                </div>
             </div>
 
             <!-- 搜索结果 -->
@@ -593,15 +612,17 @@
                 <!-- 导出功能 -->
                 <div class="export-section" id="exportSection" style="display: none;">
                     <h3>📤 导出结果</h3>
-                    <button onclick="exportToCSV()">导出为CSV</button>
-                    <button onclick="exportToJSON()">导出为JSON</button>
+                    <div id="exportBtn" class="export-btn">
+                        <button onclick="exportToCSV()">导出为CSV</button>
+                        <button onclick="exportToJSON()">导出为JSON</button>
+                    </div>
                 </div>
 
                 <!-- 结果展示 -->
                 <div class="section">
                     <h2>📋 搜索结果</h2>
                     <!-- 改进的状态显示 -->
-                    <div id="searchStatus">
+                    <div id="searchStatus" class="search-status">
                         <!-- 加载容器 - 保持结构不变，只更新消息文本 -->
                         <div id="loadingContainer" class="loading-container">
                             <div class="spinner"></div>
