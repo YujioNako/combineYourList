@@ -46,8 +46,18 @@
             padding: 30px;
         }
 
+        .message-board {
+            position: fixed;
+            top: 30px;
+            left: 50%;
+            pointer-events: none;
+            text-align: center;
+            transform: translate(-50%, 0%);
+            z-index: 1000;
+        }
+
         .section {
-            margin-bottom: 30px;
+            margin-top: 30px;
             padding: 25px;
             border: 2px solid #e9ecef;
             border-radius: 10px;
@@ -309,34 +319,52 @@
         .error {
             background: #f8d7da;
             color: #721c24;
+            opacity: 0.0;
             padding: 15px;
             border-radius: 8px;
             border: 1px solid #f5c6cb;
             margin-bottom: 20px;
+            transition: opacity 0.3s ease;
         }
 
         .success {
             background: #d4edda;
             color: #155724;
+            opacity: 0.0;
             padding: 15px;
             border-radius: 8px;
             border: 1px solid #c3e6cb;
             margin-bottom: 20px;
+            transition: opacity 0.3s ease;
+        }
+
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            opacity: 0.0;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ffeeba;
+            margin-bottom: 20px;
+            transition: opacity 0.3s ease;
         }
 
         .info {
             background: #d1ecf1;
             color: #0c5460;
+            opacity: 0.0;
             padding: 15px;
             border-radius: 8px;
             border: 1px solid #bee5eb;
             margin-bottom: 20px;
+            transition: opacity 0.3s ease;
         }
 
         .export-section {
             margin-top: 30px;
             padding: 20px;
             background: #f8f9fa;
+            border: 2px solid #e9ecef;
             border-radius: 8px;
         }
 
@@ -372,6 +400,73 @@
             100% { transform: translateX(100%); }
         }
 
+        /* 解决方案折叠相关样式 */
+        .solutions-container {
+            position: relative;
+        }
+
+        .solutions-controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 10px;
+        }
+
+        .load-more-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .load-more-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .load-more-btn svg {
+            margin-right: 8px;
+        }
+
+        .solution-count-info {
+            text-align: center;
+            color: #6c757d;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        .collapse-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .collapse-toggle .toggle-icon {
+            transition: transform 0.3s ease;
+        }
+
+        .collapse-toggle.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .solution-content {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            max-height: 1000px;
+        }
+
+        .solution-content.collapsed {
+            max-height: 0;
+        }
+
         @media (max-width: 768px) {
             .container {
                 margin: 10px;
@@ -399,6 +494,10 @@
                 margin-bottom: 5px;
                 border-radius: 8px;
             }
+
+            .solutions-controls {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
@@ -408,6 +507,8 @@
             <h1>🛒 商品组合优化查找程序</h1>
             <p>智能计算最优采购方案，节约成本，提升效率</p>
         </div>
+
+        <div class="message-board"></div>
 
         <div class="main-content">
             <!-- 商品数据输入区域 -->
@@ -462,7 +563,7 @@
             <!-- 商品约束设置 -->
             <div class="section" id="constraintsSection" style="display: none;">
                 <h2>📊 商品采购约束</h2>
-                <div class="info">
+                <div class="info" style="opacity: 1.0;">
                     <strong>说明：</strong>设置每个商品的最小和最大采购数量。系统会根据最大总价自动计算每个商品的最大可能数量。
                 </div>
                 <div>
@@ -479,29 +580,71 @@
                     <label for="maxSolutions">最大解决方案数量：</label>
                     <input type="number" id="maxSolutions" value="50" min="1" max="1000">
                 </div>
+                <div class="form-group">
+                    <label for="solutionsPerPage">每页显示解决方案数量：</label>
+                    <input type="number" id="solutionsPerPage" value="10" min="1" max="50">
+                </div>
                 <button id="startSearch" onclick="startSearch()">开始搜索</button>
                 <button id="stopSearch" onclick="stopSearch()" style="display: none;" disabled>停止搜索</button>
             </div>
 
             <!-- 搜索结果 -->
             <div id="resultsSection" style="display: none;">
+                <!-- 导出功能 -->
+                <div class="export-section" id="exportSection" style="display: none;">
+                    <h3>📤 导出结果</h3>
+                    <button onclick="exportToCSV()">导出为CSV</button>
+                    <button onclick="exportToJSON()">导出为JSON</button>
+                </div>
+
+                <!-- 结果展示 -->
                 <div class="section">
                     <h2>📋 搜索结果</h2>
-                    <div id="searchStatus"></div>
+                    <!-- 改进的状态显示 -->
+                    <div id="searchStatus">
+                        <!-- 加载容器 - 保持结构不变，只更新消息文本 -->
+                        <div id="loadingContainer" class="loading-container">
+                            <div class="spinner"></div>
+                            <div id="loadingMessage" class="loading-message">正在初始化搜索...</div>
+                        </div>
+                        
+                        <!-- 状态消息 - 搜索完成后显示 -->
+                        <div id="statusMessage" class="status-message"></div>
+                    </div>
                     <div id="searchProgress" style="display: none;">
                         <div class="search-progress">
                             <div class="search-progress-bar" id="progressBar"></div>
                         </div>
                         <div id="progressText" style="text-align: center; margin-top: 10px;">0%</div>
                     </div>
-                    <div id="solutions"></div>
-                </div>
-
-                <!-- 导出功能 -->
-                <div class="export-section" id="exportSection" style="display: none;">
-                    <h3>📤 导出结果</h3>
-                    <button onclick="exportToCSV()">导出为CSV</button>
-                    <button onclick="exportToJSON()">导出为JSON</button>
+                    
+                    <!-- 解决方案计数信息 -->
+                    <div id="solutionCountInfo" class="solution-count-info" style="display: none;"></div>
+                    
+                    <!-- 解决方案容器 -->
+                    <div id="solutions" class="solutions-container"></div>
+                    
+                    <!-- 解决方案加载控制 -->
+                    <div id="solutionsControls" class="solutions-controls" style="display: none;">
+                        <button id="loadMoreBtn" class="load-more-btn" onclick="loadMoreSolutions()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                            </svg>
+                            加载更多
+                        </button>
+                        <button id="showAllBtn" class="load-more-btn" onclick="showAllSolutions()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11.5z"/>
+                            </svg>
+                            显示全部
+                        </button>
+                        <button id="collapseAllBtn" class="load-more-btn" onclick="collapseAllSolutions()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M16 8A8 8 0 1 0 0 8a8 8 0 0 0 16 0zm-7.5-3.5a.5.5 0 0 1 1 0v5.793l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L7.5 10.293V4.5z"/>
+                            </svg>
+                            折叠全部
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -513,6 +656,9 @@
         let solutions = [];
         let isSearching = false;
         let searchTimeout = null;
+        let currentDisplayCount = 0;  // 当前显示的解决方案数量
+        let solutionsPerPage = 10;    // 每页显示的解决方案数量
+        let allExpanded = true;       // 是否所有解决方案都展开
 
         // 切换输入标签页
         function switchInputTab(tabName) {
@@ -626,7 +772,7 @@
             }
 
             showSuccess(`成功载入 ${products.length} 个商品`);
-            updateConstraintsSection();
+            updateConstraintsSection(true);
             document.getElementById('constraintsSection').style.display = 'block';
             document.getElementById('searchSection').style.display = 'block';
         }
@@ -638,36 +784,47 @@
         }
 
         // 更新约束设置区域
-        function updateConstraintsSection() {
+        function updateConstraintsSection(init) {  // init为false则在已有元素上更改
             const maxPrice = parseFloat(document.getElementById('maxPrice').value) || 500;
+            if (parseFloat(document.getElementById('minPrice').value) > maxPrice) {
+                document.getElementById('minPrice').value = maxPrice;
+                showWarning(`最小总价超过了最大总价，已调整为最大可能值${maxPrice}`);
+            }
             const container = document.getElementById('productConstraints');
-            container.innerHTML = '';
+            if (init) { container.innerHTML = ''; }
 
             products.forEach((product, index) => {
                 const maxPossible = calculateMaxQuantity(product.price, maxPrice);
                 
-                const productDiv = document.createElement('div');
-                productDiv.className = 'product-item';
-                productDiv.innerHTML = `
-                    <div class="product-header">
-                        <div class="product-name">${product.name}</div>
-                        <div class="product-price">¥${product.price.toFixed(2)}/箱</div>
-                    </div>
-                    <div class="constraint-inputs">
-                        <div>
-                            <label>最小数量：</label>
-                            <input type="number" id="min_${index}" value="0" min="0" max="${maxPossible}" onchange="validateConstraints(${index})">
+                if (init) {
+                    const productDiv = document.createElement('div');
+                    productDiv.className = 'product-item';
+                    productDiv.innerHTML = `
+                        <div class="product-header">
+                            <div class="product-name">${product.name}</div>
+                            <div class="product-price">¥${product.price.toFixed(2)}/箱</div>
                         </div>
-                        <div>
-                            <label>最大数量：</label>
-                            <input type="number" id="max_${index}" value="${maxPossible}" min="0" max="${maxPossible}" onchange="validateConstraints(${index})">
+                        <div class="constraint-inputs">
+                            <div>
+                                <label>最小数量：</label>
+                                <input type="number" id="min_${index}" value="0" min="0" max="${maxPossible}" onchange="validateConstraints(${index})">
+                            </div>
+                            <div>
+                                <label>最大数量：</label>
+                                <input type="number" id="max_${index}" value="${maxPossible}" min="0" max="${maxPossible}" onchange="validateConstraints(${index})">
+                            </div>
+                            <div class="max-possible">
+                                最大可能：<div id="maxPossible_${index}" style="display: inline-block;">${maxPossible}</div>箱
+                            </div>
                         </div>
-                        <div class="max-possible">
-                            最大可能：${maxPossible}箱
-                        </div>
-                    </div>
-                `;
-                container.appendChild(productDiv);
+                    `;
+                    container.appendChild(productDiv);
+                } else {
+                    document.getElementById(`maxPossible_${index}`).innerHTML = maxPossible;
+                    document.getElementById(`min_${index}`).max = maxPossible;
+                    document.getElementById(`max_${index}`).max = maxPossible;
+                    validateConstraints(index);
+                }
             });
         }
 
@@ -753,6 +910,13 @@
                 return;
             }
 
+            // 获取每页显示的数量
+            solutionsPerPage = parseInt(document.getElementById('solutionsPerPage').value) || 10;
+            if (solutionsPerPage < 1) {
+                solutionsPerPage = 10;
+                document.getElementById('solutionsPerPage').value = 10;
+            }
+
             // 验证价格范围
             const minPrice = parseFloat(document.getElementById('minPrice').value);
             const maxPrice = parseFloat(document.getElementById('maxPrice').value);
@@ -778,14 +942,19 @@
             // 重置搜索状态
             isSearching = true;
             solutions = [];
+            currentDisplayCount = 0;
+            allExpanded = true;
             
             // 更新UI状态
+            document.getElementById('loadingContainer').style.display = 'block';
             document.getElementById('startSearch').style.display = 'none';
             document.getElementById('stopSearch').style.display = 'inline-block';
             document.getElementById('stopSearch').disabled = false;
             document.getElementById('resultsSection').style.display = 'block';
             document.getElementById('searchProgress').style.display = 'block';
             document.getElementById('exportSection').style.display = 'none';
+            document.getElementById('solutionsControls').style.display = 'none';
+            document.getElementById('solutionCountInfo').style.display = 'none';
             
             // 清空之前的结果
             document.getElementById('solutions').innerHTML = '';
@@ -882,34 +1051,67 @@
             }
 
             // 更新UI状态
-            document.getElementById('startSearch').style.display = 'inline-block';
-            document.getElementById('stopSearch').style.display = 'none';
-            document.getElementById('searchProgress').style.display = 'none';
+            setTimeout(() => {
+                document.getElementById('startSearch').style.display = 'inline-block';
+                document.getElementById('stopSearch').style.display = 'none';
+                document.getElementById('searchProgress').style.display = 'none';
+                document.getElementById('progressBar').style.width = '0%';
+                document.getElementById('loadingContainer').style.display = 'none';
             
-            const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-            const finalMessage = foundCount > 0 ? 
-                `${message} (耗时: ${duration}秒)` : 
-                `${message}。未找到满足条件的解决方案 (耗时: ${duration}秒)`;
+                const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+                const finalMessage = foundCount > 0 ? 
+                    `${message} (耗时: ${duration}秒)` : 
+                    `${message}。未找到满足条件的解决方案 (耗时: ${duration}秒)`;
             
-            showSearchStatus(finalMessage, false);
+                showSearchStatus(finalMessage, false);
             
-            if (foundCount > 0) {
-                document.getElementById('exportSection').style.display = 'block';
-                displaySolutions(); // 确保显示最终结果
-            }
+                if (foundCount > 0) {
+                    document.getElementById('exportSection').style.display = 'block';
+                    document.getElementById('solutionsControls').style.display = 'flex';
+                    document.getElementById('solutionCountInfo').style.display = 'block';
+                    updateSolutionCountInfo();
+                    displaySolutions(); // 确保显示最终结果
+                }
+            }, 50)
+        }
+
+        // 更新解决方案计数信息
+        function updateSolutionCountInfo() {
+            const countInfo = document.getElementById('solutionCountInfo');
+            countInfo.textContent = `显示 ${currentDisplayCount} / ${solutions.length} 个解决方案`;
         }
 
         // 停止搜索
         function stopSearch() {
+            showSearchStatus('正在停止搜索...', false);
+
             isSearching = false;
             
             if (searchTimeout) {
                 clearTimeout(searchTimeout);
                 searchTimeout = null;
             }
+
+            // 更新UI状态
+            setTimeout(() => {
+                document.getElementById('startSearch').style.display = 'inline-block';
+                document.getElementById('stopSearch').style.display = 'none';
+                document.getElementById('searchProgress').style.display = 'none';
+                document.getElementById('progressBar').style.width = '0%';
+                document.getElementById('loadingContainer').style.display = 'none';
             
-            document.getElementById('stopSearch').disabled = true;
-            showSearchStatus('正在停止搜索...', false);
+                const finalMessage = '搜索已停止';
+            
+                showSearchStatus(finalMessage, false);
+            
+                if (document.getElementById('solutions').innerHTML) {
+                    document.getElementById('exportSection').style.display = 'block';
+                    document.getElementById('solutionsControls').style.display = 'flex';
+                    document.getElementById('solutionCountInfo').style.display = 'block';
+                    updateSolutionCountInfo();
+                    displaySolutions(); // 确保显示最终结果
+                }
+            }, 100)
         }
 
         // 更新搜索进度
@@ -921,24 +1123,84 @@
             progressText.textContent = `${percentage.toFixed(1)}% - 已找到 ${foundCount} 个解决方案`;
         }
 
-        // 显示搜索状态
+        // 更新加载消息（不重建DOM）
+        function updateLoadingMessage(message) {
+            document.getElementById('loadingMessage').textContent = message;
+        }
+
+        // 显示搜索状态（改进版本 - 不重新创建DOM结构）
         function showSearchStatus(message, loading) {
-            const statusDiv = document.getElementById('searchStatus');
-            statusDiv.innerHTML = loading ? 
-                `<div class="loading"><div class="spinner"></div>${message}</div>` :
-                `<div class="success">${message}</div>`;
+            const loadingContainer = document.getElementById('loadingContainer');
+            const statusMessage = document.getElementById('statusMessage');
+    
+            if (loading) {
+                // 显示加载动画，隐藏状态消息
+                loadingContainer.classList.add('active');
+                statusMessage.classList.remove('active');
+                updateLoadingMessage(message);
+            } else {
+                // 隐藏加载动画，显示状态消息
+                loadingContainer.classList.remove('active');
+                statusMessage.classList.add('active');
+                statusMessage.textContent = message;
+            }
         }
 
         // 显示解决方案
         function displaySolutions() {
             const container = document.getElementById('solutions');
+            // 清空容器，重新加载解决方案
             container.innerHTML = '';
+            
+            // 初始化显示计数
+            currentDisplayCount = 0;
+            
+            // 加载初始解决方案
+            loadMoreSolutions();
+        }
 
-            solutions.forEach((solution, index) => {
+        // 加载更多解决方案
+        function loadMoreSolutions() {
+            const container = document.getElementById('solutions');
+            const startIndex = currentDisplayCount;
+            const endIndex = Math.min(startIndex + solutionsPerPage, solutions.length);
+            
+            if (startIndex >= solutions.length) {
+                showInfo('已显示所有解决方案');
+                return;
+            }
+            
+            for (let i = startIndex; i < endIndex; i++) {
+                const solution = solutions[i];
                 const solutionDiv = document.createElement('div');
                 solutionDiv.className = 'solution-item';
+                solutionDiv.id = `solution-${i}`;
                 
-                let productsHtml = '';
+                // 创建解决方案标题（总是可见）
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'solution-header';
+                headerDiv.innerHTML = `
+                    <div class="solution-number">方案 #${i + 1}</div>
+                    <div class="solution-cost">总成本: ¥${solution.totalCost.toFixed(2)}</div>
+                `;
+                
+                // 创建折叠/展开控制按钮
+                const toggleDiv = document.createElement('div');
+                toggleDiv.className = 'collapse-toggle';
+                toggleDiv.onclick = function() { toggleSolution(i); };
+                toggleDiv.innerHTML = `
+                    <span>点击${allExpanded ? '折叠' : '展开'}详情</span>
+                    <svg class="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M7.646 4.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 5.707l-5.646 5.647a.5.5 0 0 1-.708-.708l6-6z"/>
+                    </svg>
+                `;
+                
+                // 创建解决方案内容（可折叠）
+                const contentDiv = document.createElement('div');
+                contentDiv.className = `solution-content ${allExpanded ? '' : 'collapsed'}`;
+                contentDiv.id = `solution-content-${i}`;
+                
+                let productsHtml = '<div class="solution-products">';
                 solution.quantities.forEach((qty, productIndex) => {
                     if (qty > 0) {
                         const product = products[productIndex];
@@ -951,19 +1213,105 @@
                         `;
                     }
                 });
-
-                solutionDiv.innerHTML = `
-                    <div class="solution-header">
-                        <div class="solution-number">方案 #${index + 1}</div>
-                        <div class="solution-cost">总成本: ¥${solution.totalCost.toFixed(2)}</div>
-                    </div>
-                    <div class="solution-products">
-                        ${productsHtml}
-                    </div>
-                `;
+                productsHtml += '</div>';
+                
+                contentDiv.innerHTML = productsHtml;
+                
+                // 组装解决方案
+                solutionDiv.appendChild(headerDiv);
+                solutionDiv.appendChild(toggleDiv);
+                solutionDiv.appendChild(contentDiv);
                 
                 container.appendChild(solutionDiv);
-            });
+            }
+            
+            // 更新显示计数
+            currentDisplayCount = endIndex;
+            
+            // 更新解决方案计数信息
+            updateSolutionCountInfo();
+            
+            // 根据当前显示状态更新控制按钮
+            updateControlButtons();
+        }
+
+        // 切换单个解决方案的折叠状态
+        function toggleSolution(index) {
+            const contentDiv = document.getElementById(`solution-content-${index}`);
+            const toggleDiv = document.getElementById(`solution-${index}`).querySelector('.collapse-toggle');
+            
+            if (contentDiv.classList.contains('collapsed')) {
+                contentDiv.classList.remove('collapsed');
+                toggleDiv.querySelector('span').textContent = '点击折叠详情';
+                toggleDiv.classList.remove('collapsed');
+            } else {
+                contentDiv.classList.add('collapsed');
+                toggleDiv.querySelector('span').textContent = '点击展开详情';
+                toggleDiv.classList.add('collapsed');
+            }
+        }
+
+        // 显示所有解决方案
+        function showAllSolutions() {
+            const container = document.getElementById('solutions');
+            container.innerHTML = '';
+            currentDisplayCount = 0;
+            
+            // 临时设置每页显示数量为所有解决方案
+            const originalPerPage = solutionsPerPage;
+            solutionsPerPage = solutions.length;
+            
+            loadMoreSolutions();
+            
+            // 恢复原始设置
+            solutionsPerPage = originalPerPage;
+            
+            showSuccess('已显示所有解决方案');
+        }
+
+        // 折叠所有解决方案
+        function collapseAllSolutions() {
+            allExpanded = !allExpanded;
+            
+            // 更新所有解决方案的折叠状态
+            for (let i = 0; i < currentDisplayCount; i++) {
+                const contentDiv = document.getElementById(`solution-content-${i}`);
+                const toggleDiv = document.getElementById(`solution-${i}`).querySelector('.collapse-toggle');
+                
+                if (allExpanded) {
+                    contentDiv.classList.remove('collapsed');
+                    toggleDiv.querySelector('span').textContent = '点击折叠详情';
+                    toggleDiv.classList.remove('collapsed');
+                } else {
+                    contentDiv.classList.add('collapsed');
+                    toggleDiv.querySelector('span').textContent = '点击展开详情';
+                    toggleDiv.classList.add('collapsed');
+                }
+            }
+            
+            // 更新折叠按钮文本
+            document.getElementById('collapseAllBtn').innerHTML = allExpanded ? 
+                `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M16 8A8 8 0 1 0 0 8a8 8 0 0 0 16 0zm-7.5-3.5a.5.5 0 0 1 1 0v5.793l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L7.5 10.293V4.5z"/>
+                </svg> 折叠全部` : 
+                `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11.5z"/>
+                </svg> 展开全部`;
+        }
+
+        // 更新控制按钮状态
+        function updateControlButtons() {
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            const showAllBtn = document.getElementById('showAllBtn');
+            
+            // 如果已经显示了所有解决方案，禁用"加载更多"和"显示全部"按钮
+            if (currentDisplayCount >= solutions.length) {
+                loadMoreBtn.disabled = true;
+                showAllBtn.disabled = true;
+            } else {
+                loadMoreBtn.disabled = false;
+                showAllBtn.disabled = false;
+            }
         }
 
         // 解决方案查找器类
@@ -1132,26 +1480,37 @@
 
         // 显示警告信息
         function showWarning(message) {
-            showMessage(message, 'error');
+            showMessage(message, 'warning');
+        }
+
+        // 显示一般信息
+        function showInfo(message) {
+            showMessage(message, 'info');
         }
 
         // 显示消息
         function showMessage(message, type) {
             // 移除之前的消息
-            const existingMessages = document.querySelectorAll('.error, .success, .info');
-            existingMessages.forEach(msg => msg.remove());
+            // const existingMessages = document.querySelectorAll('.error, .success, .info, .warning');
+            // existingMessages.forEach(msg => msg.remove());
 
             const messageDiv = document.createElement('div');
             messageDiv.className = type;
             messageDiv.textContent = message;
             
-            const mainContent = document.querySelector('.main-content');
+            const mainContent = document.querySelector('.message-board');
             mainContent.insertBefore(messageDiv, mainContent.firstChild);
+            setTimeout(() => {
+                messageDiv.style.opacity = 1;
+            }, 50);
 
             // 3秒后自动移除消息
             setTimeout(() => {
                 if (messageDiv.parentNode) {
-                    messageDiv.remove();
+                    messageDiv.style.opacity = 0;
+                    setTimeout(() => {
+                        messageDiv.remove();
+                    }, 500);
                 }
             }, 3000);
         }
@@ -1159,13 +1518,13 @@
         // 监听价格范围变化
         document.getElementById('minPrice').addEventListener('change', function() {
             if (products.length > 0) {
-                updateConstraintsSection();
+                updateConstraintsSection(false);
             }
         });
 
         document.getElementById('maxPrice').addEventListener('change', function() {
             if (products.length > 0) {
-                updateConstraintsSection();
+                updateConstraintsSection(false);
             }
         });
 
