@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品组合优化查找程序</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 25px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            background: #f8f9fa;
+        }
+
+        .section h2 {
+            color: #495057;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: transform 0.2s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 文件上传区域样式 */
+        .file-upload-area {
+            border: 3px dashed #dee2e6;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            background: white;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+        .file-upload-area:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .file-upload-area.dragover {
+            border-color: #667eea;
+            background: #f0f4ff;
+            transform: scale(1.02);
+        }
+
+        .file-upload-icon {
+            font-size: 3em;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .file-upload-text {
+            color: #6c757d;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        .file-upload-hint {
+            color: #8d959f;
+            font-size: 14px;
+        }
+
+        .hidden-file-input {
+            display: none;
+        }
+
+        .input-tabs {
+            display: flex;
+            border-bottom: 2px solid #dee2e6;
+            margin-bottom: 20px;
+        }
+
+        .input-tab {
+            padding: 12px 24px;
+            background: #e9ecef;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-weight: bold;
+            margin-right: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .input-tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .input-content {
+            display: none;
+        }
+
+        .input-content.active {
+            display: block;
+        }
+
+        .product-item {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .product-item:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .product-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .product-name {
+            font-weight: bold;
+            color: #495057;
+            flex: 1;
+        }
+
+        .product-price {
+            background: #e9ecef;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .constraint-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .constraint-inputs input {
+            margin: 0;
+        }
+
+        .max-possible {
+            color: #28a745;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .solutions {
+            margin-top: 30px;
+        }
+
+        .solution-item {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 5px solid #28a745;
+        }
+
+        .solution-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .solution-number {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .solution-cost {
+            background: #28a745;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .solution-products {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+        }
+
+        .solution-product {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 3px solid #667eea;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #f5c6cb;
+            margin-bottom: 20px;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #c3e6cb;
+            margin-bottom: 20px;
+        }
+
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #bee5eb;
+            margin-bottom: 20px;
+        }
+
+        .export-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .search-progress {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 20px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+
+        .search-progress-bar {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .search-progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .constraint-inputs {
+                grid-template-columns: 1fr;
+            }
+
+            .solution-products {
+                grid-template-columns: 1fr;
+            }
+
+            .input-tabs {
+                flex-direction: column;
+            }
+
+            .input-tab {
+                margin-right: 0;
+                margin-bottom: 5px;
+                border-radius: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛒 商品组合优化查找程序</h1>
+            <p>智能计算最优采购方案，节约成本，提升效率</p>
+        </div>
+
+        <div class="main-content">
+            <!-- 商品数据输入区域 -->
+            <div class="section">
+                <h2>📦 商品数据</h2>
+                
+                <div class="input-tabs">
+                    <button class="input-tab active" onclick="switchInputTab('manual')">手动输入</button>
+                    <button class="input-tab" onclick="switchInputTab('file')">文件导入</button>
+                </div>
+
+                <!-- 手动输入标签页 -->
+                <div id="manual-input" class="input-content active">
+                    <div class="form-group">
+                        <label for="csvInput">请输入商品数据（CSV格式：商品名,价格）：</label>
+                        <textarea id="csvInput" rows="8" placeholder="农夫山泉 东方树叶 茉莉花茶500ml*15瓶,25.50
+维他 250ml*24盒 柠檬茶,18.80
+椰树 椰汁味 245ml*24盒 椰子汁,22.30
+农夫山泉 380ml/瓶 24瓶/箱 饮用天然水,15.00
+农夫山泉 550ml*24瓶/箱 矿泉水,20.00"></textarea>
+                    </div>
+                    <button onclick="loadProductsFromText()">载入商品数据</button>
+                    <button onclick="loadDefaultData()">使用默认数据</button>
+                </div>
+
+                <!-- 文件导入标签页 -->
+                <div id="file-input" class="input-content">
+                    <div class="file-upload-area" id="fileUploadArea" onclick="triggerFileInput()">
+                        <div class="file-upload-icon">📁</div>
+                        <div class="file-upload-text">点击选择CSV文件或将文件拖拽到此处</div>
+                        <div class="file-upload-hint">支持CSV格式文件，第一列为商品名，第二列为价格</div>
+                    </div>
+                    <input type="file" id="csvFileInput" class="hidden-file-input" accept=".csv,.txt" onchange="handleFileSelect(event)">
+                </div>
+            </div>
+
+            <!-- 价格范围设置 -->
+            <div class="section">
+                <h2>💰 价格范围设置</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="form-group">
+                        <label for="minPrice">最小总价：</label>
+                        <input type="number" id="minPrice" value="495" step="0.01" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="maxPrice">最大总价：</label>
+                        <input type="number" id="maxPrice" value="500" step="0.01" min="0">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 商品约束设置 -->
+            <div class="section" id="constraintsSection" style="display: none;">
+                <h2>📊 商品采购约束</h2>
+                <div class="info">
+                    <strong>说明：</strong>设置每个商品的最小和最大采购数量。系统会根据最大总价自动计算每个商品的最大可能数量。
+                </div>
+                <div>
+                    <button onclick="useDefaultConstraints()">使用默认约束</button>
+                    <button onclick="resetConstraints()">重置所有约束</button>
+                </div>
+                <div id="productConstraints"></div>
+            </div>
+
+            <!-- 搜索控制 -->
+            <div class="section" id="searchSection" style="display: none;">
+                <h2>🔍 搜索设置</h2>
+                <div class="form-group">
+                    <label for="maxSolutions">最大解决方案数量：</label>
+                    <input type="number" id="maxSolutions" value="50" min="1" max="1000">
+                </div>
+                <button id="startSearch" onclick="startSearch()">开始搜索</button>
+                <button id="stopSearch" onclick="stopSearch()" style="display: none;" disabled>停止搜索</button>
+            </div>
+
+            <!-- 搜索结果 -->
+            <div id="resultsSection" style="display: none;">
+                <div class="section">
+                    <h2>📋 搜索结果</h2>
+                    <div id="searchStatus"></div>
+                    <div id="searchProgress" style="display: none;">
+                        <div class="search-progress">
+                            <div class="search-progress-bar" id="progressBar"></div>
+                        </div>
+                        <div id="progressText" style="text-align: center; margin-top: 10px;">0%</div>
+                    </div>
+                    <div id="solutions"></div>
+                </div>
+
+                <!-- 导出功能 -->
+                <div class="export-section" id="exportSection" style="display: none;">
+                    <h3>📤 导出结果</h3>
+                    <button onclick="exportToCSV()">导出为CSV</button>
+                    <button onclick="exportToJSON()">导出为JSON</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let products = [];
+        let constraints = {};
+        let solutions = [];
+        let isSearching = false;
+        let searchTimeout = null;
+
+        // 切换输入标签页
+        function switchInputTab(tabName) {
+            // 移除所有活动状态
+            document.querySelectorAll('.input-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.input-content').forEach(content => content.classList.remove('active'));
+            
+            // 激活选中的标签页
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-input').classList.add('active');
+        }
+
+        // 触发文件选择
+        function triggerFileInput() {
+            document.getElementById('csvFileInput').click();
+        }
+
+        // 设置拖拽功能
+        function setupDragAndDrop() {
+            const uploadArea = document.getElementById('fileUploadArea');
+            
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFile(files[0]);
+                }
+            });
+        }
+
+        // 处理文件选择
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        // 处理文件内容
+        function handleFile(file) {
+            if (!file.name.toLowerCase().endsWith('.csv') && !file.name.toLowerCase().endsWith('.txt')) {
+                showError('请选择CSV格式的文件');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const csvData = e.target.result;
+                document.getElementById('csvInput').value = csvData;
+                loadProductsFromText();
+                showSuccess(`文件 "${file.name}" 导入成功`);
+            };
+            reader.onerror = function() {
+                showError('文件读取失败，请检查文件格式');
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        // 载入默认商品数据
+        function loadDefaultData() {
+            const defaultData = `农夫山泉 东方树叶 茉莉花茶500ml*15瓶,25.50
+维他 250ml*24盒 柠檬茶,18.80
+椰树 椰汁味 245ml*24盒 椰子汁,22.30
+农夫山泉 380ml/瓶 24瓶/箱 饮用天然水,15.00
+农夫山泉 550ml*24瓶/箱 矿泉水,20.00`;
+            document.getElementById('csvInput').value = defaultData;
+            loadProductsFromText();
+        }
+
+        // 从文本载入商品数据
+        function loadProductsFromText() {
+            const csvData = document.getElementById('csvInput').value.trim();
+            if (!csvData) {
+                showError('请先输入商品数据');
+                return;
+            }
+
+            products = [];
+            const lines = csvData.split('\n');
+            
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
+                
+                const parts = line.split(',');
+                if (parts.length >= 2) {
+                    const name = parts[0].trim();
+                    const price = parseFloat(parts[1].trim());
+                    
+                    if (name && !isNaN(price) && price >= 0) {
+                        products.push({ name, price });
+                    }
+                }
+            }
+
+            if (products.length === 0) {
+                showError('未能解析出有效的商品数据，请检查格式');
+                return;
+            }
+
+            showSuccess(`成功载入 ${products.length} 个商品`);
+            updateConstraintsSection();
+            document.getElementById('constraintsSection').style.display = 'block';
+            document.getElementById('searchSection').style.display = 'block';
+        }
+
+        // 计算最大可能数量
+        function calculateMaxQuantity(productPrice, maxTotal) {
+            if (productPrice === 0) return 100;
+            return Math.floor(maxTotal / productPrice);
+        }
+
+        // 更新约束设置区域
+        function updateConstraintsSection() {
+            const maxPrice = parseFloat(document.getElementById('maxPrice').value) || 500;
+            const container = document.getElementById('productConstraints');
+            container.innerHTML = '';
+
+            products.forEach((product, index) => {
+                const maxPossible = calculateMaxQuantity(product.price, maxPrice);
+                
+                const productDiv = document.createElement('div');
+                productDiv.className = 'product-item';
+                productDiv.innerHTML = `
+                    <div class="product-header">
+                        <div class="product-name">${product.name}</div>
+                        <div class="product-price">¥${product.price.toFixed(2)}/箱</div>
+                    </div>
+                    <div class="constraint-inputs">
+                        <div>
+                            <label>最小数量：</label>
+                            <input type="number" id="min_${index}" value="0" min="0" max="${maxPossible}" onchange="validateConstraints(${index})">
+                        </div>
+                        <div>
+                            <label>最大数量：</label>
+                            <input type="number" id="max_${index}" value="${maxPossible}" min="0" max="${maxPossible}" onchange="validateConstraints(${index})">
+                        </div>
+                        <div class="max-possible">
+                            最大可能：${maxPossible}箱
+                        </div>
+                    </div>
+                `;
+                container.appendChild(productDiv);
+            });
+        }
+
+        // 验证约束条件
+        function validateConstraints(index) {
+            const maxPrice = parseFloat(document.getElementById('maxPrice').value) || 500;
+            const maxPossible = calculateMaxQuantity(products[index].price, maxPrice);
+            
+            const minInput = document.getElementById(`min_${index}`);
+            const maxInput = document.getElementById(`max_${index}`);
+            
+            let minVal = parseInt(minInput.value) || 0;
+            let maxVal = parseInt(maxInput.value) || 0;
+
+            // 确保不超过最大可能值
+            if (minVal > maxPossible) {
+                minVal = maxPossible;
+                minInput.value = minVal;
+                showWarning(`商品 "${products[index].name}" 的最小值已调整为最大可能值 ${maxPossible}`);
+            }
+
+            if (maxVal > maxPossible) {
+                maxVal = maxPossible;
+                maxInput.value = maxVal;
+                showWarning(`商品 "${products[index].name}" 的最大值已调整为最大可能值 ${maxPossible}`);
+            }
+
+            // 确保最小值不大于最大值
+            if (minVal > maxVal) {
+                minInput.value = maxVal;
+                showWarning(`商品 "${products[index].name}" 的最小值已调整为不超过最大值`);
+            }
+        }
+
+        // 使用默认约束
+        function useDefaultConstraints() {
+            const defaultConstraints = {
+                "农夫山泉 东方树叶 茉莉花茶500ml*15瓶": { min: 4, max: null },
+                "维他 250ml*24盒 柠檬茶": { min: 1, max: null },
+                "椰树 椰汁味 245ml*24盒 椰子汁": { min: 1, max: null },
+                "农夫山泉 380ml/瓶 24瓶/箱 饮用天然水": { min: 0, max: 0 },
+                "农夫山泉 550ml*24瓶/箱 矿泉水": { min: 0, max: 0 }
+            };
+
+            const maxPrice = parseFloat(document.getElementById('maxPrice').value) || 500;
+
+            products.forEach((product, index) => {
+                const constraint = defaultConstraints[product.name];
+                const maxPossible = calculateMaxQuantity(product.price, maxPrice);
+                
+                let minVal = constraint ? constraint.min : 0;
+                let maxVal = constraint && constraint.max !== null ? constraint.max : maxPossible;
+
+                // 确保约束值不超过最大可能值
+                minVal = Math.min(minVal, maxPossible);
+                maxVal = Math.min(maxVal, maxPossible);
+                minVal = Math.min(minVal, maxVal);
+
+                document.getElementById(`min_${index}`).value = minVal;
+                document.getElementById(`max_${index}`).value = maxVal;
+            });
+
+            showSuccess('已应用默认约束条件');
+        }
+
+        // 重置约束
+        function resetConstraints() {
+            const maxPrice = parseFloat(document.getElementById('maxPrice').value) || 500;
+            
+            products.forEach((product, index) => {
+                const maxPossible = calculateMaxQuantity(product.price, maxPrice);
+                document.getElementById(`min_${index}`).value = 0;
+                document.getElementById(`max_${index}`).value = maxPossible;
+            });
+
+            showSuccess('已重置所有约束条件');
+        }
+
+        // 开始搜索
+        function startSearch() {
+            if (products.length === 0) {
+                showError('请先载入商品数据');
+                return;
+            }
+
+            // 验证价格范围
+            const minPrice = parseFloat(document.getElementById('minPrice').value);
+            const maxPrice = parseFloat(document.getElementById('maxPrice').value);
+            
+            if (isNaN(minPrice) || isNaN(maxPrice) || minPrice < 0 || maxPrice < 0) {
+                showError('请输入有效的价格范围');
+                return;
+            }
+
+            if (minPrice > maxPrice) {
+                showError('最小价格不能大于最大价格');
+                return;
+            }
+
+            // 收集约束条件
+            constraints = {};
+            for (let i = 0; i < products.length; i++) {
+                const minVal = parseInt(document.getElementById(`min_${i}`).value) || 0;
+                const maxVal = parseInt(document.getElementById(`max_${i}`).value) || 0;
+                constraints[i] = { min: minVal, max: maxVal };
+            }
+
+            // 重置搜索状态
+            isSearching = true;
+            solutions = [];
+            
+            // 更新UI状态
+            document.getElementById('startSearch').style.display = 'none';
+            document.getElementById('stopSearch').style.display = 'inline-block';
+            document.getElementById('stopSearch').disabled = false;
+            document.getElementById('resultsSection').style.display = 'block';
+            document.getElementById('searchProgress').style.display = 'block';
+            document.getElementById('exportSection').style.display = 'none';
+            
+            // 清空之前的结果
+            document.getElementById('solutions').innerHTML = '';
+            
+            showSearchStatus('正在初始化搜索...', true);
+
+            // 使用setTimeout来模拟异步搜索，避免阻塞UI
+            setTimeout(() => {
+                performSearch(minPrice, maxPrice);
+            }, 100);
+        }
+
+        // 执行搜索
+        function performSearch(minTotal, maxTotal) {
+            if (!isSearching) return;
+
+            const maxSolutions = parseInt(document.getElementById('maxSolutions').value) || 50;
+            const solutionFinder = new SolutionFinder(minTotal, maxTotal, constraints);
+            
+            let foundCount = 0;
+            let iterationCount = 0;
+            const startTime = Date.now();
+            const maxIterations = 100000; // 最大迭代次数，防止无限循环
+
+            function findNextBatch() {
+                if (!isSearching) {
+                    finishSearch(foundCount, startTime, '搜索已停止');
+                    return;
+                }
+
+                const batchSize = 50; // 每批处理50次尝试
+                let batchCount = 0;
+                let foundInBatch = 0;
+
+                while (batchCount < batchSize && foundCount < maxSolutions && isSearching && iterationCount < maxIterations) {
+                    const result = solutionFinder.findNextSolution();
+                    iterationCount++;
+                    batchCount++;
+
+                    if (result.success) {
+                        solutions.push({
+                            quantities: result.quantities,
+                            totalCost: result.totalCost
+                        });
+                        foundCount++;
+                        foundInBatch++;
+                    } else if (result.finished) {
+                        // 搜索空间已耗尽
+                        finishSearch(foundCount, startTime, `搜索完成！找到 ${foundCount} 个解决方案`);
+                        return;
+                    }
+                }
+
+                // 更新进度
+                const progress = Math.min(100, (iterationCount / maxIterations) * 100);
+                updateProgress(progress, foundCount);
+
+                // 如果找到了解决方案，更新显示
+                if (foundInBatch > 0) {
+                    displaySolutions();
+                }
+
+                // 检查终止条件
+                if (foundCount >= maxSolutions) {
+                    finishSearch(foundCount, startTime, `已达到最大解决方案数量限制 (${maxSolutions})`);
+                    return;
+                }
+
+                if (iterationCount >= maxIterations) {
+                    finishSearch(foundCount, startTime, `已达到最大搜索次数限制`);
+                    return;
+                }
+
+                if (!isSearching) {
+                    finishSearch(foundCount, startTime, '搜索已停止');
+                    return;
+                }
+
+                // 继续下一批搜索
+                showSearchStatus(`正在搜索中... 已找到 ${foundCount} 个解决方案 (已搜索 ${iterationCount} 次)`, true);
+                searchTimeout = setTimeout(findNextBatch, 10);
+            }
+
+            findNextBatch();
+        }
+
+        // 完成搜索
+        function finishSearch(foundCount, startTime, message) {
+            isSearching = false;
+            
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+                searchTimeout = null;
+            }
+
+            // 更新UI状态
+            document.getElementById('startSearch').style.display = 'inline-block';
+            document.getElementById('stopSearch').style.display = 'none';
+            document.getElementById('searchProgress').style.display = 'none';
+            
+            const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+            const finalMessage = foundCount > 0 ? 
+                `${message} (耗时: ${duration}秒)` : 
+                `${message}。未找到满足条件的解决方案 (耗时: ${duration}秒)`;
+            
+            showSearchStatus(finalMessage, false);
+            
+            if (foundCount > 0) {
+                document.getElementById('exportSection').style.display = 'block';
+                displaySolutions(); // 确保显示最终结果
+            }
+        }
+
+        // 停止搜索
+        function stopSearch() {
+            isSearching = false;
+            
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+                searchTimeout = null;
+            }
+            
+            document.getElementById('stopSearch').disabled = true;
+            showSearchStatus('正在停止搜索...', false);
+        }
+
+        // 更新搜索进度
+        function updateProgress(percentage, foundCount) {
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            
+            progressBar.style.width = percentage + '%';
+            progressText.textContent = `${percentage.toFixed(1)}% - 已找到 ${foundCount} 个解决方案`;
+        }
+
+        // 显示搜索状态
+        function showSearchStatus(message, loading) {
+            const statusDiv = document.getElementById('searchStatus');
+            statusDiv.innerHTML = loading ? 
+                `<div class="loading"><div class="spinner"></div>${message}</div>` :
+                `<div class="success">${message}</div>`;
+        }
+
+        // 显示解决方案
+        function displaySolutions() {
+            const container = document.getElementById('solutions');
+            container.innerHTML = '';
+
+            solutions.forEach((solution, index) => {
+                const solutionDiv = document.createElement('div');
+                solutionDiv.className = 'solution-item';
+                
+                let productsHtml = '';
+                solution.quantities.forEach((qty, productIndex) => {
+                    if (qty > 0) {
+                        const product = products[productIndex];
+                        const itemCost = qty * product.price;
+                        productsHtml += `
+                            <div class="solution-product">
+                                <strong>${product.name}</strong><br>
+                                ${qty} 箱 × ¥${product.price.toFixed(2)} = ¥${itemCost.toFixed(2)}
+                            </div>
+                        `;
+                    }
+                });
+
+                solutionDiv.innerHTML = `
+                    <div class="solution-header">
+                        <div class="solution-number">方案 #${index + 1}</div>
+                        <div class="solution-cost">总成本: ¥${solution.totalCost.toFixed(2)}</div>
+                    </div>
+                    <div class="solution-products">
+                        ${productsHtml}
+                    </div>
+                `;
+                
+                container.appendChild(solutionDiv);
+            });
+        }
+
+        // 解决方案查找器类
+        class SolutionFinder {
+            constructor(minTotal, maxTotal, constraints) {
+                this.minTotal = minTotal;
+                this.maxTotal = maxTotal;
+                this.constraints = constraints;
+                this.foundSolutions = new Set();
+                this.stack = [];
+                this.initialize();
+            }
+
+            initialize() {
+                const initialQuantities = new Array(products.length).fill(0);
+                
+                // 设置最小约束
+                for (let idx in this.constraints) {
+                    initialQuantities[idx] = this.constraints[idx].min;
+                }
+
+                const initialCost = this.calculateCost(initialQuantities);
+                this.stack.push({ index: 0, quantities: initialQuantities, cost: initialCost });
+            }
+
+            calculateCost(quantities) {
+                return quantities.reduce((total, qty, index) => total + qty * products[index].price, 0);
+            }
+
+            findNextSolution() {
+                if (this.stack.length === 0) {
+                    return { success: false, finished: true };
+                }
+
+                const state = this.stack.pop();
+                const { index, quantities, cost } = state;
+
+                if (index === products.length) {
+                    if (cost >= this.minTotal && cost <= this.maxTotal) {
+                        // 验证约束条件
+                        let valid = true;
+                        for (let prodIdx in this.constraints) {
+                            const constraint = this.constraints[prodIdx];
+                            if (quantities[prodIdx] < constraint.min || quantities[prodIdx] > constraint.max) {
+                                valid = false;
+                                break;
+                            }
+                        }
+
+                        if (valid) {
+                            const solutionKey = quantities.join(',');
+                            if (!this.foundSolutions.has(solutionKey)) {
+                                this.foundSolutions.add(solutionKey);
+                                return {
+                                    success: true,
+                                    quantities: [...quantities],
+                                    totalCost: cost,
+                                    finished: false
+                                };
+                            }
+                        }
+                    }
+                    return { success: false, finished: false };
+                }
+
+                const constraint = this.constraints[index];
+                const minQty = constraint ? constraint.min : 0;
+                const maxQty = constraint ? constraint.max : Math.floor(this.maxTotal / products[index].price);
+
+                // 从最大值向最小值遍历（优先高数量的组合）
+                for (let qty = maxQty; qty >= minQty; qty--) {
+                    const newQuantities = [...quantities];
+                    newQuantities[index] = qty;
+                    const newCost = cost + (qty - quantities[index]) * products[index].price;
+
+                    if (newCost <= this.maxTotal) {
+                        this.stack.push({
+                            index: index + 1,
+                            quantities: newQuantities,
+                            cost: newCost
+                        });
+                    }
+                }
+
+                return { success: false, finished: false };
+            }
+        }
+
+        // 导出为CSV
+        function exportToCSV() {
+            if (solutions.length === 0) {
+                showError('没有可导出的解决方案');
+                return;
+            }
+
+            let csv = '方案编号,总成本';
+            products.forEach(product => {
+                csv += ',' + product.name;
+            });
+            csv += '\n';
+
+            solutions.forEach((solution, index) => {
+                let row = `${index + 1},${solution.totalCost.toFixed(2)}`;
+                solution.quantities.forEach(qty => {
+                    row += ',' + qty;
+                });
+                csv += row + '\n';
+            });
+
+            downloadFile(csv, 'product_solutions.csv', 'text/csv');
+        }
+
+        // 导出为JSON
+        function exportToJSON() {
+            if (solutions.length === 0) {
+                showError('没有可导出的解决方案');
+                return;
+            }
+
+            const exportData = {
+                timestamp: new Date().toISOString(),
+                priceRange: {
+                    min: parseFloat(document.getElementById('minPrice').value),
+                    max: parseFloat(document.getElementById('maxPrice').value)
+                },
+                products: products,
+                constraints: constraints,
+                solutions: solutions.map((solution, index) => ({
+                    id: index + 1,
+                    totalCost: solution.totalCost,
+                    quantities: solution.quantities,
+                    products: solution.quantities.map((qty, productIndex) => ({
+                        name: products[productIndex].name,
+                        quantity: qty,
+                        unitPrice: products[productIndex].price,
+                        subtotal: qty * products[productIndex].price
+                    })).filter(item => item.quantity > 0)
+                }))
+            };
+
+            downloadFile(JSON.stringify(exportData, null, 2), 'product_solutions.json', 'application/json');
+        }
+
+        // 下载文件
+        function downloadFile(content, filename, contentType) {
+            const blob = new Blob([content], { type: contentType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 显示错误信息
+        function showError(message) {
+            showMessage(message, 'error');
+        }
+
+        // 显示成功信息
+        function showSuccess(message) {
+            showMessage(message, 'success');
+        }
+
+        // 显示警告信息
+        function showWarning(message) {
+            showMessage(message, 'error');
+        }
+
+        // 显示消息
+        function showMessage(message, type) {
+            // 移除之前的消息
+            const existingMessages = document.querySelectorAll('.error, .success, .info');
+            existingMessages.forEach(msg => msg.remove());
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type;
+            messageDiv.textContent = message;
+            
+            const mainContent = document.querySelector('.main-content');
+            mainContent.insertBefore(messageDiv, mainContent.firstChild);
+
+            // 3秒后自动移除消息
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.remove();
+                }
+            }, 3000);
+        }
+
+        // 监听价格范围变化
+        document.getElementById('minPrice').addEventListener('change', function() {
+            if (products.length > 0) {
+                updateConstraintsSection();
+            }
+        });
+
+        document.getElementById('maxPrice').addEventListener('change', function() {
+            if (products.length > 0) {
+                updateConstraintsSection();
+            }
+        });
+
+        // 页面加载完成后初始化
+        window.addEventListener('load', function() {
+            setupDragAndDrop();
+            loadDefaultData();
+        });
+    </script>
+</body>
+</html>
