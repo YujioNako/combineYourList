@@ -23,9 +23,25 @@ def load_products_from_csv(file_path):
     return products
 
 
-products_file = input("商品列表文件（默认为products.csv）：") or "products.csv"
-products = load_products_from_csv(products_file)
-print(f"===== 已找到{len(products)}个商品 =====")
+def set_price_range() -> tuple[Decimal, Decimal]:
+    """设置价格范围."""
+    while True:
+        try:
+            min_price = Decimal(input("最小总价 (默认495): ") or "495")
+            max_price = Decimal(input("最大总价 (默认500): ") or "500")
+            if min_price <= max_price:
+                return min_price, max_price
+            else:
+                print("错误: 最小价格必须小于或等于最大价格")
+        except Exception:
+            print("请输入有效的数字")
+
+
+def calculate_max_quantity(product_price, max_total):
+    """计算商品最大可购买数量."""
+    if product_price == Decimal('0'):
+        return 100  # 防止除以零
+    return int(max_total // product_price)
 
 
 class SolutionFinder:
@@ -108,24 +124,49 @@ class SolutionFinder:
         return False, None, None
 
 
-def setup_constraints() -> dict:
-    """交互式设置商品约束条件."""
+def setup_constraints(max_total: Decimal) -> dict:
+    """交互式设置商品约束条件，基于最大总价计算默认最大采购数量."""
     constraints = {}
     print("\n===== 设置商品采购约束 =====")
     print("每个商品的约束格式: min,max (如: 0,5 表示数量在0-5之间)")
-    print("直接回车则不设置约束，商品数量将在0到最大可能之间自动计算")
-    print(", 前留空视作min为0，, 后留空视作max为100")
+    print("直接回车则使用自动计算的约束，商品数量将在0到系统计算的最大可能之间")
+    print(", 前留空视作min为0，, 后留空视作max为自动计算的最大可能")
     print("----------------------------")
     
     for i, product in enumerate(products):
+        # 计算此商品在最大价格下可购买的最大数量
+        max_possible = calculate_max_quantity(product["price"], max_total)
+        
         print(f"{i + 1}. {product['name']} - 单价: {product['price']} 元/箱")
+        print(f"   最大可能数量: {max_possible} 箱")
+        
         while True:
             constraint_input = input(f"   设置约束 (min,max): ").strip()
-            if constraint_input:
+            if not constraint_input:
+                # 默认设置: 最小0，最大为计算出的最大可能数量
+                constraints[i] = {"min": 0, "max": max_possible}
+                print(f"   已设置: 最少 0 箱, 最多 {max_possible} 箱")
+                break
+            else:
                 try:
                     parts = constraint_input.split(',')
                     min_val = int(parts[0]) if parts[0] else 0
-                    max_val = int(parts[1]) if len(parts) > 1 and parts[1] else 100
+                    max_val = int(parts[1]) if len(parts) > 1 and parts[1] else max_possible
+                    
+                    # 确保min和max不超过最大可选数量
+                    if min_val > max_possible:
+                        print(f"   警告: 最小值 {min_val} 超过了最大可能数量 {max_possible}，已自动调整为 {max_possible}")
+                        min_val = max_possible
+                    
+                    if max_val > max_possible:
+                        print(f"   警告: 最大值 {max_val} 超过了最大可能数量 {max_possible}，已自动调整为 {max_possible}")
+                        max_val = max_possible
+                    
+                    # 确保min不大于max
+                    if min_val > max_val:
+                        print(f"   警告: 最小值 {min_val} 大于最大值 {max_val}，已自动调整最小值为 {max_val}")
+                        min_val = max_val
+                    
                     constraints[i] = {"min": min_val, "max": max_val}
                     print(f"   已设置: 最少 {min_val} 箱, 最多 {max_val} 箱")
                     break
@@ -134,31 +175,41 @@ def setup_constraints() -> dict:
     return constraints
 
 
-def setup_default_constraints() -> dict:
-    """设置默认约束（基于原始需求）."""
+def setup_default_constraints(max_total: Decimal) -> dict:
+    """设置默认约束（基于原始需求），并计算最大可能数量."""
     product_to_idx = {p["name"]: i for i, p in enumerate(products)}
-    constraints = {
-        product_to_idx["农夫山泉 东方树叶 茉莉花茶500ml*15瓶"]: {"min": 4, "max": 100},
-        product_to_idx["维他 250ml*24盒 柠檬茶"]: {"min": 1, "max": 100},
-        product_to_idx["椰树 椰汁味 245ml*24盒 椰子汁"]: {"min": 1, "max": 100},
-        product_to_idx["农夫山泉 380ml/瓶 24瓶/箱 饮用天然水"]: {"min": 0, "max": 0},
-        product_to_idx["农夫山泉 550ml*24瓶/箱 矿泉水"]: {"min": 0, "max": 0},
+    constraints = {}
+    
+    # 先设置基本的最小值约束
+    default_min_values = {
+        "农夫山泉 东方树叶 茉莉花茶500ml*15瓶": 4,
+        "维他 250ml*24盒 柠檬茶": 1,
+        "椰树 椰汁味 245ml*24盒 椰子汁": 1,
+        "农夫山泉 380ml/瓶 24瓶/箱 饮用天然水": 0,
+        "农夫山泉 550ml*24瓶/箱 矿泉水": 0,
     }
+    
+    # 特殊约束 - 设置为0的产品保持最大值也为0
+    zero_max_products = ["农夫山泉 380ml/瓶 24瓶/箱 饮用天然水", "农夫山泉 550ml*24瓶/箱 矿泉水"]
+    
+    for product_name, idx in product_to_idx.items():
+        # 计算最大值
+        if product_name in zero_max_products:
+            max_val = 0
+        else:
+            max_val = calculate_max_quantity(products[idx]["price"], max_total)
+        
+        # 获取默认最小值
+        min_val = default_min_values.get(product_name, 0)
+        
+        # 确保min不超过max
+        if min_val > max_val:
+            print(f"警告: 商品 '{product_name}' 的最小值 {min_val} 超过了最大可能数量 {max_val}，已自动调整为 {max_val}")
+            min_val = max_val
+        
+        constraints[idx] = {"min": min_val, "max": max_val}
+    
     return constraints
-
-
-def set_price_range() -> tuple[Decimal, Decimal]:
-    """设置价格范围."""
-    while True:
-        try:
-            min_price = Decimal(input("最小总价 (默认495): ") or "495")
-            max_price = Decimal(input("最大总价 (默认500): ") or "500")
-            if min_price <= max_price:
-                return min_price, max_price
-            else:
-                print("错误: 最小价格必须小于或等于最大价格")
-        except Exception:
-            print("请输入有效的数字")
 
 
 def write_solutions_to_csv(solutions, filename='product_solutions.csv', format_type='wide'):
@@ -195,6 +246,16 @@ def write_solutions_to_csv(solutions, filename='product_solutions.csv', format_t
 
 def main():
     """主程序入口."""
+    global products
+    
+    # 加载商品数据
+    products_file = input("商品列表文件（默认为products.csv）：") or "products.csv"
+    products = load_products_from_csv(products_file)
+    print(f"===== 已找到{len(products)}个商品 =====")
+    
+    # 首先设置总价范围
+    min_total, max_total = set_price_range()
+    
     # 选择约束设置方式
     print("\n请选择约束设置方式:")
     print("1. 使用默认约束（按原始需求）")
@@ -202,12 +263,9 @@ def main():
     choice = input("请选择 (1/2): ").strip()
     
     if choice == "2":
-        constraints = setup_constraints()
+        constraints = setup_constraints(max_total)
     else:
-        constraints = setup_default_constraints()
-    
-    # 设置总价范围
-    min_total, max_total = set_price_range()
+        constraints = setup_default_constraints(max_total)
     
     # 是否逐个输出
     print("\n是否逐个输出？")
