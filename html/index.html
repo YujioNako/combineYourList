@@ -541,12 +541,12 @@
                 <div id="manual-input" class="input-content active">
                     <div class="form-group">
                         <label for="csvInput">请输入商品数据（CSV格式：商品名,价格）：</label>
-                        <textarea id="csvInput" rows="8" placeholder="农夫山泉 380ml/瓶 24瓶/箱 饮用天然水,15.00
-农夫山泉 550ml*24瓶/箱 矿泉水,20.00
-宝矿力 350ml*24盒 电解质运动型饮料,0.00
-椰树 椰汁味 245ml*24盒 椰子汁,22.30
-农夫山泉 东方树叶茉莉花茶 500ml*15瓶 0糖0脂0卡无糖茶饮料,25.50
-三得利 无糖乌龙茶0糖0能量0脂 500ml*15,0.00"></textarea>
+                        <textarea id="csvInput" rows="8" placeholder="农夫山泉 380ml/瓶 24瓶/箱 饮用天然水,21.24
+农夫山泉 550ml*24瓶/箱 矿泉水,24.73
+宝矿力 350ml*24盒 电解质运动型饮料,71.68
+椰树 椰汁味 245ml*24盒 椰子汁,64.51
+农夫山泉 东方树叶茉莉花茶 500ml*15瓶 0糖0脂0卡无糖茶饮料,47.77
+三得利 无糖乌龙茶0糖0能量0脂 500ml*15,43.34"></textarea>
                     </div>
                     <button onclick="loadProductsFromText()">载入商品数据</button>
                     <button onclick="loadDefaultData()">使用默认数据</button>
@@ -753,12 +753,12 @@
 
         // 载入默认商品数据
         function loadDefaultData() {
-            const defaultData = `农夫山泉 380ml/瓶 24瓶/箱 饮用天然水,15.00
-农夫山泉 550ml*24瓶/箱 矿泉水,20.00
-宝矿力 350ml*24盒 电解质运动型饮料,0.00
-椰树 椰汁味 245ml*24盒 椰子汁,22.30
-农夫山泉 东方树叶茉莉花茶 500ml*15瓶 0糖0脂0卡无糖茶饮料,25.50
-三得利 无糖乌龙茶0糖0能量0脂 500ml*15,0.00`;
+            const defaultData = `农夫山泉 380ml/瓶 24瓶/箱 饮用天然水,21.24
+农夫山泉 550ml*24瓶/箱 矿泉水,24.73
+宝矿力 350ml*24盒 电解质运动型饮料,71.68
+椰树 椰汁味 245ml*24盒 椰子汁,64.51
+农夫山泉 东方树叶茉莉花茶 500ml*15瓶 0糖0脂0卡无糖茶饮料,47.77
+三得利 无糖乌龙茶0糖0能量0脂 500ml*15,43.34`;
             document.getElementById('csvInput').value = defaultData;
             loadProductsFromText();
         }
